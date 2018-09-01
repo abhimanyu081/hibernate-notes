@@ -109,4 +109,148 @@ Example hibernate.cfg.xml file for MYSQL.
 </hibernate-configuration>
 ```
 
+## Step 2: Write Model Class
+
+Why to use javax.* package?
+
+
+## Step 3 : Create a Service class that instantiates the user object and calls Hibernate API to save the object.
+
+
+
+# Steps in Using Hibernate APIs.
+
+1. Create a SessionFactory - Only one object per App.
+   what does it do?
+    It creates session dependeing upon how many session we want in our App throughout execution period.
+
+    We need to acquire session object to save object to DB. And we get this session object from SessionFactory. SessionFactory is create upfront from the xml configuration file  we have provided.
+
+2. Create session from SessionFactory - Every time we want to intercat with DB we will have to acquire the session object and perform the DB operation.
+
+3. Use the Session to save Model Object. 
+
+```
+@Entity(name="USER_DETAILS")
+@Column(name="user_name")
+Column annotation can be put  on fields as well as on getters.
+
+```
+
+## Few More annotations
+
+`@Table`
+
+When we provide @Entinty(name) we give name to the whole entity but when we give @Table(name) we name only the table. 
+**No When would we call Entity Name VS Table Name?**
+When we write HQL we dont address Table names but Entity Names.
+
+@Basic- indcates HB to use defaults (datatype mappings)
+It is as good as not having it.
+
+javax.persistence.Transient :- To mark a property not to be persisted.
+
+HB would not automatically persist @transient and static proeprties.
+
+HB saves java.util.Date as - timestamp without timezone.
+
+javax.persistence.@Temporal(javax.persistence.TemporalType.TIME) - default TIMESTAMP
+
+String - VARCHER(255)
+
+character large objecr - clob
+byte stream large object - blob
+
+@Lob - choos one of the clob/blob [String - clob], [byte[] - blob]
+
+
+------------------------
+
+# Retrieving Objects using session.get
+
+```
+SessionFactory sessionFactory=new Configuration().configure().buildSessionFactory();
+Session session = sessionFactory.openSession();
+session.beginTransaction();
+session = sessionFactory.openSession();
+user = session.get(UserDetails.class, 100001);
+System.out.println(user);
+```
+
+# Primary Keys
+
+@Id :- Primary Key
+
+## Natural Key vs Surrogate Key
+
+e.g unique and mandatory col
+e.g. suppose we require user to provide unique email then we can define email as primary key, called Natural key.
+Surrogate - We don't know if any column can be marked a sunique. WWe dont have a column that can be marked as unique or we anticipate that it could change in future so in that case we add a column and it acts as a primary key alone,  
+**it does not carry any business significance**
+This key is called surrogate key. e.g serial number in a table.
+
+We can tell HB to generate surrogate key for us and we dont require to pass the key while saving.
+
+@GeneratedValue
+
+### @GeneratedValue strategies
+
+1. GenerationType.AUTO **(Default strategy)**:- We let HB decide the best way to generate keys depending on DB used.
+2. GenerationType.IDENTITY :- HB will use IDENTITY Columns to generate unique primary keys. Identity columns is a fetaure provided in some of the Databases.
+3. GenerationType.SEQUENCE :- HB uses Sequence Database object. These are managed by databases itself.
+
+```sql
+   select next_val as id_val from hibernate_sequence for update
+
+```
+
+4. GenerationType.TABLE - sepearte table to store last use primary key so that we can increment aand get the next value. HB will craete this table and use this to generate primary keys.
+
+# Value Types and Embedding Objects (vid - 8)
+
+How does we embedded object?
+
+## One Way - One column for each field of embedded object.
+
+![Hibernate Embedded Object Example](/home/abhimanyu/Pictures/HibernateEmbeddedObject.png "Logo Title Text 1")
+
+This approach works when the Embedded object is a **value object**.
+In Hibernate we have two types of objects.
+
+1. Entity Object:- It has its own existence.
+2. Value Object :- doeas not have meaning of itself alone. It provides meaning to some other object. e.g Address does not have its own existence without a user object.
+
+So we treat Embedded objects differently depending on there type.
+
+There are few implications of having Embedded objects.
+
+# AttributeOverrides and Embedded Object Keys  (vid -9)
+
+How do we configure columns of the Embedded value Object e.g rename column city as city_name of Address Object.
+
+We can use @Column(name="city_name") for the field. Then the Address object carries this column information everywhere it is embedded e.g say in a Company Object.
+
+What if we want to embedd more than one instances of the Embeddable object. e.g we want to have home_address and office_address in UserDetails object. Now this is a problem since HB can not create two columns for same name i.e. home_address.city_name and office_address.city_name.
+This can be solved by overriding default name when embeding objects.
+
+```java
+@Embedded
+private Address homeAddress;
+
+@Embedded
+@AttributeOverrides({
+@AttributeOverride(name = "street", column = @Column(name = "home_street")),
+@AttributeOverride(name = "city", column = @Column(name = "home_city")),
+@AttributeOverride(name = "state", column = @Column(name = "home_state")),
+@AttributeOverride(name = "pincode", column = @Column(name = "home_pincode")),
+})
+// modify default column names
+private Address officeAddress;
+
+```
+
+Each embedded objects have there own sets of columns in the table.
+
+**@Embedded does not work with @Id**
+If we are using a complex Embedded Object(set of fields acting as primary key) as primary key in the Entity class, then @Embedded would not work in this scenario. We use **@EmbeddedId** in this case.
 
